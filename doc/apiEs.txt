@@ -1,0 +1,157 @@
+===========================
+APIs específicas de lxml.etree
+===========================
+
+lxml.etree intenta seguir las APIs establecidas siempre que sea posible.  En ocasiones,
+sin embargo, la necesidad de exponer una característica de una manera fácil llevó a la invención de una
+nueva API.  Esta página describe las principales diferencias y algunas adiciones a la
+API principal de ElementTree.
+
+Para una referencia completa de la API, vea la `Apriori generada
+generada`_.
+
+Otras páginas describen el soporte para `parsear XML`_, ejecutar `XPath y
+XSLT`_, `validar XML`_ e interactuar con otras herramientas XML a través de la
+`SAX-API`_.
+
+lxml es extremadamente extensible a través de `funciones XPath en Python`_, clases de elementos
+clases de elementos de Python`_, resolvedores de URL personalizados`_ e incluso `a nivel de C`_.
+
+.. _`parsing XML`_: parsing.html
+.. XPath y XSLT: xpathxslt.html
+.. Validación de XML: validación.html
+.. _`SAX-API`: sax.html
+.. Funciones XPath en Python: extensions.html
+.. Clases de elementos en Python: element_classes.html
+.. _`en el nivel C`: capi.html
+.. _`Los resolutores de URL`: resolvers.html
+.. _`Documentación generada de la API`: api/index.html
+
+
+.. contenidos::
+.. 
+   1 lxml.etree
+   2 Otras APIs de elementos
+   3 Árboles y documentos
+   4 Iteración
+   5 Tratamiento de errores en las excepciones
+   6 Registro de errores
+   7 Serialización
+   8 Generación incremental de XML
+   9 CDATA
+   10 XInclude y ElementInclude
+
+..
+  >>> from io import BytesIO
+  >>> def StringIO(s=None):
+  ... if isinstance(s, str): s = s.encode("UTF-8")
+  ... return BytesIO(s)
+
+
+lxml.etree
+----------
+
+lxml.etree intenta seguir la API `ElementTree`_ siempre que puede.  Sin embargo, hay
+sin embargo algunas incompatibilidades (ver `compatibilidad`_).  Las extensiones están
+documentadas aquí.
+
+.. API del árbol de elementos: http://effbot.org/zone/element-index.htm
+.. _`compatibilidad`: compatibilidad.html
+
+Si necesitas saber qué versión de lxml está instalada, puedes acceder al atributo
+``lxml.etree.LXML_VERSION`` para obtener una tupla de versiones.  Tenga en cuenta
+sin embargo, que no existía antes de la versión 1.0, por lo que obtendrá un
+AttributeError en versiones anteriores.  Las versiones de libxml2 y libxslt están
+disponibles a través de los atributos ``LIBXML_VERSION`` y ``LIBXSLT_VERSION``.
+
+Los siguientes ejemplos suelen suponer que esto se ejecuta primero:
+
+.. código fuente:: pycon
+
+  >>> from lxml import etree
+
+..
+  >>> import sys
+  >>> from lxml import etree as _etree
+  >>> si sys.version_info[0] >= 3:
+  ... class etree_mock(object):
+  ... def __getattr__(self, name): return getattr(_etree, name)
+  ... def tostring(self, *args, **kwargs):
+  ... s = _etree.tostring(*args, **kwargs)
+  ... if isinstance(s, bytes) and bytes([10]) in s: s = s.decode("utf-8") # CR
+  ... if s[-1] == '\n': s = s[:-1]
+  ... return s
+  ... else:
+  ... class etree_mock(object):
+  ... def __getattr__(self, name): return getattr(_etree, name)
+  ... def tostring(self, *args, **kwargs):
+  ... s = _etree.tostring(*args, **kwargs)
+  ... if s[-1] == '\n': s = s[:-1]
+  ... return s
+  >>> etree = etree_mock()
+
+
+Otras API de elementos
+------------------
+
+Aunque lxml.etree utiliza la API ElementTree, es posible reemplazar
+la implementación de Element por `subclases de elementos personalizadas`_.  Esto se ha
+utilizado para implementar APIs XML conocidas sobre lxml.  Por ejemplo, lxml incluye
+con una implementación de enlace de datos llamada `objectify`_, que es similar a
+la herramienta `Amara bindery`_.
+
+lxml.etree viene con un número de `diferentes esquemas de búsqueda`_ para personalizar el
+entre los nodos de libxml2 y las clases Element utilizadas por lxml.etree.
+
+.. Subclases de elementos personalizadas: element_classes.html
+.. _`objectify`: objectify.html
+.. Diferentes esquemas de búsqueda: element_classes.html#setting-up-a-class-lookup-scheme
+.. _`Amara bindery`: http://uche.ogbuji.net/tech/4suite/amara/
+
+
+Árboles y documentos
+-------------------
+
+En comparación con la API original de ElementTree, lxml.etree tiene un modelo de árbol extendido
+extendido.  Conoce los padres y hermanos de los elementos:
+
+.. código fuente:: pycon
+
+  >>> root = etree.Element("root")
+  >>> a = etree.SubElement(root, "a")
+  >>> b = etree.SubElement(root, "b")
+  >>> c = etree.SubElement(root, "c")
+  >>> d = etree.SubElement(root, "d")
+  >>> e = etree.SubElement(d, "e")
+  >>> b.getparent() == raíz
+  True
+  >>> print(b.getnext().tag)
+  c
+  >>> print(c.getprevious().tag)
+  b
+
+Los elementos siempre viven dentro de un contexto de documento en lxml.  Esto implica que
+también existe la noción de raíz absoluta del documento.  Se puede recuperar un
+ElementTree para el nodo raíz de un documento a partir de cualquiera de sus elementos.
+
+.. código fuente:: pycon
+
+  >>> tree = d.getroottree()
+  >>> print(tree.getroot().tag)
+  raíz
+
+Ten en cuenta que esto es diferente de envolver un elemento en un ElementTree.  Usted
+puede usar ElementTrees para crear árboles XML con un nodo raíz explícito:
+
+.. código fuente:: pycon
+
+  >>> tree = etree.ElementTree(d)
+  >>> print(tree.getroot().tag)
+  d
+  >>> etree.tostring(tree)
+  b'<d><e/></d>'
+
+Los objetos ElementTree se serializan como documentos completos, incluyendo
+o precedente
+
+Traducción realizada con la versión gratuita del traductor www.DeepL.com/Translator

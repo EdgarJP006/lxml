@@ -1,0 +1,155 @@
+Cómo construir lxml desde el código fuente
+=============================
+
+Para construir lxml desde el código fuente, necesitas libxml2 y libxslt
+instalados, *incluyendo los archivos de cabecera*.  Estos probablemente se envían en
+paquetes separados ``-dev`` o ``-devel`` como ``libxml2-dev``, que
+debe instalar antes de intentar construir lxml.
+
+.. contenidos::
+..
+   1 Cython
+   2 Github, git y hg
+   3 Construir las fuentes
+   4 Ejecutar las pruebas e informar de los errores
+   5 Construyendo un huevo
+   6 Construir lxml en MacOS-X
+   7 Enlace estático en Windows
+   8 Construir paquetes Debian a partir de fuentes SVN
+
+
+Cython
+------
+
+.. _pip: http://pypi.python.org/pypi/pip
+.. _Cython: http://cython.org
+.. _wheel: https://wheel.readthedocs.io/en/latest/
+
+Los módulos lxml.etree y lxml.objectify están escritos en Cython_.
+Dado que distribuimos los archivos .c generados por Cython con las versiones de lxml,
+sin embargo, no se necesita Cython para construir lxml a partir de las fuentes
+normales.  Incluso le animamos a que *no instale Cython* para una construcción normal de
+normal, ya que el código C generado puede variar bastante entre las versiones de
+versiones de Cython, lo que puede generar o no el código correcto para lxml.
+Las fuentes de lanzamiento pregeneradas fueron probadas y por lo tanto se sabe que
+funcionan.
+
+Así que, si quieres una construcción fiable de lxml, te sugerimos a) usar una
+una versión fuente de lxml y b) deshabilitar o desinstalar Cython para la
+construcción.
+
+*Sólo si está interesado en construir lxml a partir de una comprobación de los
+fuentes del desarrollador (por ejemplo, para probar una corrección de errores que no ha sido liberada
+aún) o si quieres ser un desarrollador de lxml, entonces necesitas una
+instalación de Cython en funcionamiento.  Puedes usar pip_ para instalarlo::
+
+    pip install -r requirements.txt
+
+https://github.com/lxml/lxml/blob/master/requirements.txt
+
+Actualmente lxml requiere al menos Cython 0.29.  Las versiones posteriores
+son generalmente preferibles.
+
+
+Github, git y hg
+-------------------
+
+El paquete lxml se desarrolla en un repositorio en Github_ usando
+Mercurial_ y el plugin `hg-git`_.  Puede obtener la versión actual
+versión del desarrollador usando::
+
+  hg clone git+ssh://git@github.com/lxml/lxml.git lxml
+
+O, usando git::
+
+  git clone ssh://git@github.com/lxml/lxml.git lxml
+
+Esto creará un directorio ``lxml`` y descargará el código fuente en él,
+incluyendo el historial de desarrollo completo.  No te preocupes, la descarga del
+descarga del repositorio es bastante rápida.  También puedes navegar por el
+repositorio `lxml`_ a través de la web o descargar un archivo ZIP con la
+`última rama maestra <https://github.com/lxml/lxml/archive/master.zip>`_.
+
+.. _Github: https://github.com/lxml/
+.. .. _Mercurial: http://mercurial.selenic.com/
+.. _`hg-git`: http://hg-git.github.com/
+.. _`lxml repository`: https://github.com/lxml/lxml
+.. _`source tar-ball`: https://github.com/lxml/lxml/tarball/master
+
+
+Construyendo las fuentes
+---------------------
+
+Clone el repositorio de fuentes como se ha descrito anteriormente (o descargue
+el `source tar-ball`_ y desempaquetarlo) y luego escribir::
+
+  python setup.py build
+
+o::
+
+  python setup.py bdist_egg # requiere 'setuptools' o 'distribute'
+
+Para (re)construir las fuentes C con Cython, debes pasar adicionalmente la opción
+opción ``--with-cython``::
+
+  python setup.py build --with-cython
+
+Si quieres probar lxml desde el directorio fuente, es mejor construirlo
+en el lugar como este::
+
+  python setup.py build_ext -i --with-cython
+
+o, en entornos tipo Unix::
+
+  make inplace
+
+Para acelerar la construcción en entornos de prueba (por ejemplo, en un servidor de
+integración continua), establezca la variable de entorno ``CFLAGS`` para
+para desactivar las optimizaciones del compilador de C (por ejemplo, "-O0" para gcc, es decir
+menos-cero), por ejemplo::
+
+  CFLAGS="-O0" make inplace
+
+Si obtienes errores por falta de archivos de cabecera (por ejemplo, ``Python.h`` o
+``libxml/xmlversion.h``) entonces necesitas asegurarte de que los paquetes de desarrollo de
+de desarrollo de Python, libxml2 y libxslt.  En
+distribuciones de Linux, suelen llamarse algo así como
+``libxml2-dev`` o ``libxslt-devel``.  Si estos paquetes se
+Si estos paquetes fueron instalados en lugares no estándar, intente pasar la siguiente opción a
+setup.py para asegurarse de que se encuentra la configuración correcta::
+
+  python setup.py build --with-xslt-config=/ruta/a/xslt-config
+
+También hay env vars para permitir anular la herramienta de configuración::
+
+  env XML2_CONFIG=/path/to/xml2-config python build
+
+También puedes usar ``pkg-config`` como herramienta::
+
+  env XSLT_CONFIG="pkg-config libxslt" python setup.py build
+
+Si esto no ayuda, es posible que tenga que añadir la ubicación de los archivos de cabecera
+a la ruta de inclusión como::
+
+  python setup.py build_ext -i -I /usr/include/libxml2
+
+donde el archivo está en ``/usr/include/libxml2/libxml/xmlversion.h``.
+
+Para utilizar lxml.etree en su lugar, puedes colocar el directorio ``src`` de lxml
+en tu ruta de búsqueda de módulos de Python (PYTHONPATH) y luego importar
+``lxml.etree`` para jugar con él::
+
+  # cd lxml
+  # PYTHONPATH=src python
+  Python 2.7.2
+  Escribe "help", "copyright", "credits" o "license" para más información.
+  >>> from lxml import etree
+  >>>
+
+Para asegurarte de que todo se recompila limpiamente después de los cambios, puedes
+ejecutar ``make clean`` o borrar el archivo ``src/lxml/etree.c``.
+
+
+Ejecutando las pruebas
+
+Traducción realizada con la versión gratuita del traductor www.DeepL.com/Translator
